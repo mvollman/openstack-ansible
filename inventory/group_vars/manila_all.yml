@@ -1,0 +1,35 @@
+---
+# Copyright 2016, Rackspace US, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+manila_service_region: "{{ service_region }}"
+# If there are Swift hosts in the environment, then enable manila datas to it
+# These are here rather than in manila_all because
+# both the os_ceilometer and os_manila roles require them
+
+# If there are any Ceilometer hosts in the environment, then enable its usage
+manila_ceilometer_enabled: "{{ (groups['manila_all'] is defined) and (groups['manila_all'] | length > 0) and (groups['ceilometer_all'] is defined) and (groups['ceilometer_all'] | length > 0) }}"
+
+# The address used to listen for communications
+manila_management_address: "{{ ansible_host }}"
+
+# manila_backend_lvm_inuse: True if current host has an lvm backend
+manila_backend_lvm_inuse: '{{ (manila_backends|default("")|to_json).find("manila.share.drivers.lvm.LVMShareDriver") != -1 }}'
+manila_service_in_ldap: "{{ service_ldap_backend_enabled }}"
+
+# Ensure that the package state matches the global setting
+manila_package_state: "{{ package_state }}"
+
+# The system user for all manila services
+manila_system_user_name: manila

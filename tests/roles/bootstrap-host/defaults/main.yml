@@ -43,7 +43,7 @@ bootstrap_user_variables_template: user_variables.aio.yml.j2
 ## Loopback volumes
 # Sparse loopback disks are used for the containers if there is no secondary
 # disk available to partition for btrfs. They are also used for Ceph, Cinder,
-# Swift and Nova (instance storage).
+# Swift, Manila and Nova (instance storage).
 # The size of the loopback volumes can be customized here (in gigabytes).
 #
 # Boolean option to deploy the loopback disk for Swap
@@ -55,6 +55,10 @@ bootstrap_host_loopback_swap_size: 4096
 bootstrap_host_loopback_cinder: yes
 # Size of the Cinder loopback disk in gigabytes (GB).
 bootstrap_host_loopback_cinder_size: 1024
+# Boolean option to deploy the loopback disk for Manila
+bootstrap_host_loopback_manila: yes
+# Size of the Cinder loopback disk in gigabytes (GB).
+bootstrap_host_loopback_manila_size: 1024
 #
 # Boolean option to deploy the loopback disk for Swift
 bootstrap_host_loopback_swift: yes

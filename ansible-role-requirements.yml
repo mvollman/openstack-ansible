@@ -78,6 +78,10 @@
   scm: git
   src: https://git.openstack.org/openstack/openstack-ansible-os_cinder
   version: master
+- name: os_manila
+  scm: git
+  src: https://git.openstack.org/openstack/openstack-ansible-os_manila
+  version: master
 - name: os_congress
   scm: git
   src: https://git.openstack.org/openstack/openstack-ansible-os_congress

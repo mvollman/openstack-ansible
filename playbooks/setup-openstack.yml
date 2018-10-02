@@ -40,6 +40,7 @@
 - include: os-octavia-install.yml
 - include: os-tacker-install.yml
 - include: os-blazar-install.yml
+- include: os-manila-install.yml
 
 # This is not an OpenStack service, but integrates with Keystone and must be
 # deployed afterward.

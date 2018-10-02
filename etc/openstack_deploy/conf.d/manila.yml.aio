@@ -1,0 +1,19 @@
+---
+manila-infra_hosts:
+  aio1:
+    ip: 172.29.236.100
+
+manila_hosts:
+  aio1:
+    ip: 172.29.236.100
+    container_vars:
+      manila_default_share_type: lvm
+      manila_enabled_share_protocols: NFS
+      manila_backends:
+        limit_container_types: manila_share
+        lvm:
+          share_backend_name: LVM
+          share_driver: manila.share.drivers.lvm.LVMShareDriver
+          driver_handles_share_servers: False
+          lvm_share_volume_group: manila-shares
+          lvm_share_export_ip: "172.29.236.100"

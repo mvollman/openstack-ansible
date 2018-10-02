@@ -1,0 +1,161 @@
+---
+# Copyright 2014, Rackspace US, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Install manila scheduler services
+  include: common-playbooks/manila.yml
+  vars:
+    manila_hosts: "manila_scheduler:!manila_api"
+    manila_serial: "{{ manila_scheduler_serial | default(['1', '100%']) }}"
+
+
+
+- name: Install manila API services
+  include: common-playbooks/manila.yml
+  vars:
+    manila_hosts: "manila_api"
+    manila_serial: "{{ manila_api_serial | default(['1', '100%']) }}"
+
+
+
+- name: Install manila share services
+  include: common-playbooks/manila.yml
+  vars:
+    manila_hosts: "manila_share:!manila_scheduler:!manila_api"
+    manila_serial: "{{ manila_backend_serial | default('1', '100%') }}"
+
+
+
+- name: Install manila data services
+  include: common-playbooks/manila.yml
+  vars:
+    manila_hosts: "manila_data:!manila_share:!manila_scheduler:!manila_api"
+    manila_serial: "{{ manila_backend_serial | default(['1', '100%']) }}"
+
+
+
+# These facts are set against the deployment host to ensure that
+# they are fast to access. This is done in preference to setting
+# them against each target as the hostvars extraction will take
+# a long time if executed against a large inventory.
+- name: Refresh local facts after all software changes are made
+  hosts: manila_all
+  gather_facts: no
+  user: root
+  environment: "{{ deployment_environment_variables | default({}) }}"
+  vars_files:
+    - "defaults/{{ install_method }}_install.yml"
+  tags:
+    - manila
+  tasks:
+    - name: refresh local facts
+      setup:
+        filter: ansible_local
+        gather_subset: "!all"
+
+    # This variable contains the values of the local fact set for the manila
+    # venv tag for all hosts in the 'manila_all' host group.
+    - name: Gather software version list
+      set_fact:
+        manila_all_software_versions: "{{ (groups['manila_all'] | map('extract', hostvars, ['ansible_local', 'openstack_ansible', 'manila', 'venv_tag'])) | list }}"
+      delegate_to: localhost
+      run_once: yes
+
+    # This variable outputs a boolean value which is True when
+    # manila_all_software_versions contains a list of defined
+    # values. If they are not defined, it means that not all
+    # hosts have their software deployed yet.
+    - name: Set software deployed fact
+      set_fact:
+        manila_all_software_deployed: "{{ (manila_all_software_versions | select('defined')) | list == manila_all_software_versions }}"
+      delegate_to: localhost
+      run_once: yes
+
+    # This variable outputs a boolean when all the values in
+    # manila_all_software_versions are the same and the software
+    # has been deployed to all hosts in the group.
+    - name: Set software updated fact
+      set_fact:
+        manila_all_software_updated: "{{ ((manila_all_software_versions | unique) | length == 1) and (manila_all_software_deployed | bool) }}"
+      delegate_to: localhost
+      run_once: yes
+
+
+
+- name: Restart manila agents to ensure new RPC object version is used
+  hosts: manila_data,manila_share,manila_scheduler
+  gather_facts: no
+  serial: "{{ manila_backend_serial | default(['1', '100%']) }}"
+  user: root
+  environment: "{{ deployment_environment_variables | default({}) }}"
+  vars_files:
+    - "defaults/{{ install_method }}_install.yml"
+  tags:
+    - manila
+  tasks:
+    - name: Execute manila service reload
+      include: common-tasks/restart-service.yml
+      vars:
+        service_name: "{{ item }}"
+        service_action: "reloaded"
+        service_fact: "manila"
+      with_items:
+        - "manila-scheduler"
+        - "manila-data"
+        - "manila-share"
+      when:
+        - "manila_all_software_updated | bool"
+        - "ansible_local['openstack_ansible']['manila']['need_service_restart'] | bool"
+
+
+
+- name: Restart manila API to ensure new RPC object version is used
+  hosts: manila_api
+  gather_facts: no
+  serial: "{{ manila_api_serial | default(['1','100%']) }}"
+  user: root
+  environment: "{{ deployment_environment_variables | default({}) }}"
+  vars_files:
+    - "defaults/{{ install_method }}_install.yml"
+  tags:
+    - manila
+  tasks:
+    # In order to ensure that the service restart does not
+    # cause an unexpected outage, we drain the load balancer
+    # back end for this container.
+    - include: common-tasks/haproxy-endpoint-manage.yml
+      vars:
+        haproxy_state: disabled
+      when:
+        - "manila_all_software_updated | bool"
+        - "ansible_local['openstack_ansible']['manila']['need_service_restart'] | bool"
+        - "groups['manila_api'] | length > 1"
+
+    - name: Execute manila service restart
+      include: common-tasks/restart-service.yml
+      vars:
+        service_name: "manila-api"
+        service_action: "restarted"
+        service_fact: "manila"
+      when:
+        - "manila_all_software_updated | bool"
+        - "ansible_local['openstack_ansible']['manila']['need_service_restart'] | bool"
+
+    # Now that service restart is done, we can set
+    # the load balancer back end for this container
+    # to available again.
+    - include: common-tasks/haproxy-endpoint-manage.yml
+      vars:
+        haproxy_state: enabled
+      when: "groups['manila_api'] | length > 1"

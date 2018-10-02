@@ -16,6 +16,7 @@
 cinder_bin: "/openstack/venvs/cinder-{{ venv_tag }}/bin"
 glance_bin: "/openstack/venvs/glance-{{ venv_tag }}/bin"
 keystone_bin: "/openstack/venvs/keystone-{{ venv_tag }}/bin"
+manila_bin: "/openstack/venvs/manila-{{ venv_tag }}/bin"
 nova_bin: "/openstack/venvs/nova-{{ venv_tag }}/bin"
 octavia_bin: "/openstack/venvs/octavia-{{ venv_tag }}/bin"
 tempest_venv_bin: "/openstack/venvs/tempest-{{ venv_tag }}/bin"

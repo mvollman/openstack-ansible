@@ -196,6 +196,15 @@ haproxy_default_services:
         - "httpchk HEAD / HTTP/1.0\\r\\nUser-agent:\\ osa-haproxy-healthcheck"
       haproxy_service_enabled: "{{ groups['cinder_api'] is defined and groups['cinder_api'] | length > 0 }}"
   - service:
+      haproxy_service_name: manila_api
+      haproxy_backend_nodes: "{{ groups['manila_api'] | default([]) }}"
+      haproxy_ssl: "{{ haproxy_ssl }}"
+      haproxy_port: 8786
+      haproxy_balance_type: http
+      haproxy_backend_options:
+        - "httpchk HEAD / HTTP/1.0\\r\\nUser-agent:\\ osa-haproxy-healthcheck"
+      haproxy_service_enabled: "{{ groups['manila_api'] is defined and groups['manila_api'] | length > 0 }}"
+  - service:
       haproxy_service_name: horizon
       haproxy_backend_nodes: "{{ groups['horizon_all'] | default([]) }}"
       haproxy_ssl: "{{ haproxy_ssl }}"
